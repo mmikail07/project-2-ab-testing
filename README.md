@@ -10,7 +10,7 @@
 
 ## TL;DR
 
-Synthetic 50,000-user experiment on a six-stage marketplace funnel (impressions → product view → add to cart → checkout start → payment → completion). A +2.5 percentage-point true lift on conversion is injected at the cart-page free-shipping-threshold step. The analysis recovers that lift inside its 95% confidence interval. An A/A simulation across 10,000 runs confirms Type I error sits at the nominal 5%. A peeking demo shows naive interim looks inflate the false-positive rate from ~5% to ~27%, which mSPRT and O'Brien-Fleming sequential bounds bring back under control.
+Synthetic 50,000-user experiment on a six-stage marketplace funnel (impressions → product view → add to cart → checkout start → payment → completion). A +2.5 percentage-point true lift on conversion is injected at the cart-page free-shipping-threshold step. The analysis recovers `+2.79pp` with a 95% CI of `[+2.36, +3.21]pp`, which contains the truth. An A/A simulation across 10,000 runs measures empirical Type I rate at `0.0505`, basically dead-on alpha. Sequential / peeking analysis ships in week 3.
 
 Because the data is synthetic and ground truth is recorded in `data/processed/ground_truth.json`, every claim above is verifiable by re-running `python scripts/verify_truth.py`. That is the central credibility argument for the project: on real A/B data you cannot prove your analysis is correct because you do not know the true effect.
 
@@ -54,11 +54,41 @@ pytest tests/                  # full statistical-correctness gate
 
 ## Findings
 
-_Populated end of Week 2._
+### 1. Primary lift recovered inside 95% CI
 
-1. **Primary lift recovered.** _placeholder_
-2. **A/A validates Type I control.** _placeholder_
-3. **Peeking inflates FPR roughly five-fold without sequential correction.** _placeholder_
+True lift baked into the simulation is 2.50pp. The two-proportion z-test recovers `+2.79pp` with a 95% CI of `[+2.36, +3.21]pp` and p-value below 1e-6. The CI contains the true value, the lift is statistically significant, and the magnitude is operationally meaningful (a 50% relative lift on a 5% baseline).
+
+![primary lift](reports/figures/04_primary_ci.png)
+
+The `scripts/verify_truth.py` gate generalizes this beyond a single seed: across 5 seeds, the CI contains the true 2.5pp in every run (5/5 coverage). That is the project's core credibility argument.
+
+### 2. A/A validates the 5% Type I rate
+
+Across 10,000 A/A simulations (both arms drawn from the same baseline rate, no real effect), the empirical false positive rate is `0.0505`. P-values are uniform on `[0, 1]` as theory predicts, confirmed visually below and by a Kolmogorov-Smirnov test.
+
+![A/A p-value histogram](reports/figures/03_aa_pvalue_uniform.png)
+
+If this number drifted to, say, 0.15, every "significant" result in the rest of the project would be three times more likely to be noise than the experimenter believes. The cost of running the A/A is minutes; the cost of skipping it is shipping the wrong launch decision.
+
+### 3. Guardrails work — including catching a false positive on noise
+
+Three guardrails were tested one-sided in the adverse direction.
+
+| Guardrail | Control | Treatment | One-sided p | Flagged |
+|-----------|---------|-----------|-------------|---------|
+| Refund rate per order | 3.03% | 4.38% | 0.028 | **yes** |
+| Cart abandonment rate | 6.98% | 6.90% | 0.63 | no |
+| Page-load mean (ms) | 1849.3 | 1849.5 | 0.41 | no |
+
+The refund-rate-per-order guardrail fired even though the simulation uses an identical refund rate for both arms (4.1%). That is the right behavior, not a bug. With only ~1,220 control completers vs ~1,940 treatment completers (the lift inflates the treatment denominator), per-order refund rate is noisy. A real launch decision would either run longer for more completers, decompose refunds by reason code, or accept the directional read with the caveat documented. This is the most honest thing guardrails do: they tell you when the data does not yet support a clean ship decision.
+
+### 4. Segmentation: Bonferroni and Benjamini-Hochberg both reject across all 6 segments
+
+The primary metric was sliced by three boolean segment columns (`is_returning`, `is_mobile`, `high_aov`), giving 6 tests on the same data. Both Bonferroni and BH reject all 6 at alpha=0.05. This is expected: the simulation applies the same +2.5pp lift to every user regardless of segment, so the lift is detectable in each slice.
+
+![segment forest](reports/figures/04_segment_forest.png)
+
+The pedagogical point lives in the A/A simulation above, not in this segment table: when the true lift is zero, running 6 segment tests without correction means a `1 - 0.95^6 ≈ 26%` chance of at least one spurious "win." Bonferroni divides alpha by 6 (controls family-wise error); BH controls false-discovery rate (more permissive, right for exploration). Showing both makes the trade-off visible.
 
 ## Repo layout
 
