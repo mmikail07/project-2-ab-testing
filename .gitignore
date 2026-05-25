@@ -1,0 +1,40 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+env/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb_checkpoints
+
+# Generated experiment data (regenerate with python scripts/run_all.py)
+# Large parquet is excluded; small summary CSV + ground_truth JSON are committed
+# as reference artifacts so a clone can read the truth without rerunning.
+data/raw/*
+data/interim/*
+data/processed/*.parquet
+!data/raw/.gitkeep
+!data/interim/.gitkeep
+!data/processed/.gitkeep
+!data/processed/experiment_summary.csv
+!data/processed/ground_truth.json
+
+# Figures are committed (the README and Medium article embed them as published artifacts).
+
+# Secrets / env
+.env
+.env.local
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

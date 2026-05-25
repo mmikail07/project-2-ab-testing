@@ -1,0 +1,36 @@
+{
+  "description": "Noon-style marketplace funnel baseline rates per 100 impressions. Used by src.simulate to generate per-stage Bernoulli draws under the control arm. Calibration target taken from the spec doc 'Project 4' section.",
+  "stages": [
+    {"name": "impression",       "conditional_rate": 1.00, "absolute_per_100": 100.0},
+    {"name": "product_view",     "conditional_rate": 0.35, "absolute_per_100":  35.0},
+    {"name": "add_to_cart",      "conditional_rate": 0.343, "absolute_per_100":  12.0},
+    {"name": "checkout_start",   "conditional_rate": 0.667, "absolute_per_100":   8.0},
+    {"name": "payment",          "conditional_rate": 0.75, "absolute_per_100":   6.0},
+    {"name": "completion",       "conditional_rate": 0.833, "absolute_per_100":   5.0}
+  ],
+  "treatment_target_stage": "completion",
+  "default_true_lift_pp": 2.5,
+  "secondary_metrics": {
+    "aov_aed_mean_control": 285.0,
+    "aov_aed_sd_control": 140.0,
+    "items_per_order_mean_control": 2.4,
+    "items_per_order_sd_control": 1.6
+  },
+  "guardrail_metrics": {
+    "page_load_p95_ms_control": 1850.0,
+    "page_load_p95_ms_sd": 90.0,
+    "refund_rate_control": 0.041,
+    "cart_abandonment_rate_control": 0.685
+  },
+  "segments": {
+    "is_returning": {"share": 0.42, "lift_modifier_pp": 0.5},
+    "is_mobile":    {"share": 0.71, "lift_modifier_pp": 0.0},
+    "high_aov":     {"share": 0.30, "lift_modifier_pp": 0.0}
+  },
+  "notes": [
+    "conditional_rate = P(stage_k | stage_{k-1}) under control. absolute_per_100 is the marginal share of 100 impressions reaching that stage and is shown for sanity-check only.",
+    "treatment effect is applied at the 'completion' stage (cart-page free-shipping threshold hypothesis), conditional on having reached payment.",
+    "secondary AOV and items-per-order are sampled only for users who reach completion.",
+    "lift_modifier_pp lets a segment receive a slightly different true lift; the headline analysis uses the global lift, segmentation analysis reveals the modifier."
+  ]
+}

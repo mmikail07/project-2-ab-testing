@@ -1,0 +1,11 @@
+{
+  "n_users": 50000,
+  "seed": 42,
+  "arm_split": 0.5,
+  "true_lift_pp": 2.5,
+  "analytical_baseline_rate": 0.0500258254125,
+  "analytical_target_rate": 0.0750258254125,
+  "additional_completion_prob": 0.02631650487852005,
+  "treatment_stage": "completion",
+  "funnel_baseline_path": "data/external/funnel_baseline.json"
+}
