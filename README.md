@@ -2,7 +2,7 @@
 
 > Pre-flight to post-analysis A/B testing on a synthetic Noon-style marketplace funnel. What a product analytics team actually ships, end to end, with ground truth you can verify against.
 
-**Live calculator:** _coming Week 3_ (Streamlit Community Cloud)
+**Live calculator:** _pending Streamlit Community Cloud deploy_ — run locally with `streamlit run streamlit_app/app.py`
 **Medium write-up:** _coming Week 4_
 **Author:** Mohammad Mikail
 
@@ -10,7 +10,7 @@
 
 ## TL;DR
 
-Synthetic 50,000-user experiment on a six-stage marketplace funnel (impressions → product view → add to cart → checkout start → payment → completion). A +2.5 percentage-point true lift on conversion is injected at the cart-page free-shipping-threshold step. The analysis recovers `+2.79pp` with a 95% CI of `[+2.36, +3.21]pp`, which contains the truth. An A/A simulation across 10,000 runs measures empirical Type I rate at `0.0505`, basically dead-on alpha. Sequential / peeking analysis ships in week 3.
+Synthetic 50,000-user experiment on a six-stage marketplace funnel (impressions → product view → add to cart → checkout start → payment → completion). A +2.5 percentage-point true lift on conversion is injected at the cart-page free-shipping-threshold step. The analysis recovers `+2.79pp` with a 95% CI of `[+2.36, +3.21]pp`, which contains the truth. An A/A simulation across 10,000 runs measures empirical Type I rate at `0.0505`, basically dead-on alpha. Naive peeking at 4 interim looks inflates the FPR to `0.1231`; both O'Brien-Fleming group-sequential bounds (`0.0507`) and mSPRT (`0.0041`) bring it back to alpha or below. A Bayesian Beta-Binomial companion reports `P(treatment > control | data) = 1.0000` with a 95% credible interval of `[+2.36, +3.21]pp` that matches the frequentist CI.
 
 Because the data is synthetic and ground truth is recorded in `data/processed/ground_truth.json`, every claim above is verifiable by re-running `python scripts/verify_truth.py`. That is the central credibility argument for the project: on real A/B data you cannot prove your analysis is correct because you do not know the true effect.
 
@@ -89,6 +89,37 @@ The primary metric was sliced by three boolean segment columns (`is_returning`, 
 ![segment forest](reports/figures/04_segment_forest.png)
 
 The pedagogical point lives in the A/A simulation above, not in this segment table: when the true lift is zero, running 6 segment tests without correction means a `1 - 0.95^6 ≈ 26%` chance of at least one spurious "win." Bonferroni divides alpha by 6 (controls family-wise error); BH controls false-discovery rate (more permissive, right for exploration). Showing both makes the trade-off visible.
+
+### 5. Peeking inflates FPR; OBF and mSPRT bring it back to alpha
+
+10,000 A/A simulations with interim looks at 25/50/75/100% of N. Naive rejection at any look (apply `|z| > 1.96` at every peek) takes the false positive rate from the nominal 0.05 to `0.1231`, a 2.5x inflation. Two corrections were tested:
+
+| method | empirical FPR | inflation factor | controlled? |
+|--------|---------------|------------------|-------------|
+| naive (no correction) | 0.1231 | 2.46x | NO |
+| O'Brien-Fleming bounds | 0.0507 | 1.01x | yes |
+| mSPRT (τ = 0.025) | 0.0041 | 0.08x | yes |
+
+![peeking FPR](reports/figures/05_peeking_fpr.png)
+
+O'Brien-Fleming uses pre-committed stricter critical z-values at early interim looks (literature constant `c=2.024` for K=4 at α=0.05) that taper to the unadjusted z by the final look. mSPRT is *always valid*: peek as often as you want with no inflation, at the cost of a small power penalty calibrated by τ (here matched to the expected 0.025 effect size).
+
+The operational lesson: in real product work, engineers and PMs will peek. The right response is not "don't look" (impossible to enforce) but "use a test that survives looking."
+
+![OBF spending boundary](reports/figures/05_obf_boundaries.png)
+
+### 6. Bayesian companion: P(treatment > control) = 1.0000
+
+Same data, conjugate Beta-Binomial model with `Beta(1, 1)` prior, 100,000 posterior samples per arm.
+
+| framing | point lift | 95% interval | evidence |
+|---------|------------|--------------|----------|
+| frequentist | +2.786pp | [+2.36, +3.21]pp confidence | p < 1e-6 |
+| bayesian | +2.787pp | [+2.36, +3.21]pp credible | P(T > C) = 1.0000 |
+
+![posterior densities](reports/figures/06_posterior_vs_frequentist.png)
+
+Point estimates and intervals are computationally indistinguishable at this sample size with a flat prior (as expected). The interpretation differs. Frequentist CI: "if we re-ran this experiment many times, 95% of resulting intervals would contain the true lift." Bayesian credible interval: "given the data, the true lift is in this interval with 95% probability." Stakeholders almost always want the second framing, particularly when paired with the expected-loss decision rule: expected loss of shipping treatment is `0.0000pp` (the posterior assigns zero mass to control winning); expected loss of holding control is `2.79pp`.
 
 ## Repo layout
 
