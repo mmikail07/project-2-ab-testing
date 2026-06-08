@@ -2,8 +2,8 @@
 
 > Pre-flight to post-analysis A/B testing on a synthetic Noon-style marketplace funnel. What a product analytics team actually ships, end to end, with ground truth you can verify against.
 
-**Live calculator:** _pending Streamlit Community Cloud deploy_ — run locally with `streamlit run streamlit_app/app.py`
-**Medium write-up:** _coming Week 4_
+**Live calculator:** [project-2-ab-testing.streamlit.app](https://project-2-ab-testing.streamlit.app) (or run it locally with `streamlit run streamlit_app/app.py`)
+**Medium write-up:** [Peeking at an A/B Test Inflates Your False Positives by 2.5x](https://medium.com/@mm0703/peeking-at-an-a-b-test-inflates-your-false-positives-by-2-5x-i-measured-it-eedbefe4d1f7)
 **Author:** Mohammad Mikail
 
 ---
@@ -70,7 +70,7 @@ Across 10,000 A/A simulations (both arms drawn from the same baseline rate, no r
 
 If this number drifted to, say, 0.15, every "significant" result in the rest of the project would be three times more likely to be noise than the experimenter believes. The cost of running the A/A is minutes; the cost of skipping it is shipping the wrong launch decision.
 
-### 3. Guardrails work — including catching a false positive on noise
+### 3. Guardrails work, including catching a false positive on noise
 
 Three guardrails were tested one-sided in the adverse direction.
 
