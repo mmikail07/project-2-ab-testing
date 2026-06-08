@@ -1,0 +1,9 @@
+# Slim deps for Streamlit Community Cloud.
+# Co-located with the entrypoint (app.py) so Cloud uses THIS file, not the
+# full root requirements.txt. Entrypoint-directory deps take precedence over
+# the repo root on Community Cloud, which keeps the cold start fast.
+numpy>=1.26
+scipy>=1.11
+statsmodels>=0.14
+streamlit>=1.32
+plotly>=5.20
